@@ -1,15 +1,23 @@
 import optparse
-import socket
 from socket import *
-
+from threading import *
+screenLock = Semaphore(value=1)
 def connScan(tgtHost, tgtPort):
 	try:
 		connSkt = socket(AF_INET, SOCK_STREAM)
 		connSkt.connect((tgtHost, tgtPort))
+        screenLock.acquire()
+        connSkt.send("ViolentPython\r\n")
+        results = connSkt.recv(100)
 		print '[+]%d/tcp open'% tgtPort
-		connSkt.close()
+        print '[+] ' + str(results)
+		
 	except:
+        screenLock.acquire()
 		print '[-]%d/tcp closed'% tgtPort
+    finally:
+        screenLock.release()
+        connSkt.close()
 
 def portScan(tgtHost, tgtPorts):
 	try:
@@ -24,9 +32,8 @@ def portScan(tgtHost, tgtPorts):
 		print '\n[+] Scan Results for: ' + tgtIP
 	setdefaulttimeout(1)
 	for tgtPort in tgtPorts:
-		print 'Scanning port ' + tgtPort
-		connScan(tgtHost, int(tgtPort))
-#		connScan(tgtHost, tgtPort)
+        t = Thread(target=connScan, args=(tgtHost, int(tgtPort)))
+        t.start()
 
 		
 def main():
